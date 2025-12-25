@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #0B1F3B;
+  --color-tech-blue: #1F4ED8;
+  --color-strategic-green: #2E7D32;
+  --color-corporate-gray: #6B7280;
+  --color-premium-light: #F3F4F6;
+  
+  --animate-fade-in-up: fade-in-up 0.5s ease-out;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
