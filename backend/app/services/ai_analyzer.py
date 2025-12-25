@@ -35,7 +35,7 @@ FORMATO DE RESPOSTA:
 
 async def analyze_code(code_snippet: str) -> dict:
     try:
-        MODEL_NAME = "gemini-2.5-flash"
+        MODEL_NAME = "gemini-2.5-flash-lite"
         
         model = genai.GenerativeModel(MODEL_NAME)
         

@@ -8,4 +8,4 @@ python-multipart
 httpx
 asyncpg
 email-validator
-google-generativeai
+google-generativeai>=0.8.3

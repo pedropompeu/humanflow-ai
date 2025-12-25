@@ -54,6 +54,9 @@ async def analyze(
     db: AsyncSession = Depends(get_db),
 ):
     """Analisa código usando IA e salva o resultado."""
+    print(f"[DEBUG] Recebendo análise para repositório: {request.repository_id}")
+    print(f"[DEBUG] Tamanho do código recebido: {len(request.code)} caracteres")
+    
     # Verificar se repositório existe
     result = await db.execute(
         select(Repository).where(Repository.id == request.repository_id)
@@ -66,18 +69,25 @@ async def analyze(
 
     # Analisar código com IA
     analysis_result = await analyze_code(request.code)
+    print(f"[DEBUG] Resultado da análise: score={analysis_result.get('score')}")
 
     # Salvar resultado com código original
     report = AnalysisReport(
         repository_id=request.repository_id,
         debt_score=analysis_result.get("score", 0),
         summary=analysis_result.get("summary", ""),
-        code_content=request.code,
+        code_content=request.code,  # IMPORTANTE: Salvando código original
         full_report=analysis_result,
     )
+    
+    print(f"[DEBUG] Salvando code_content com {len(request.code)} caracteres")
+    
     db.add(report)
     await db.commit()
     await db.refresh(report)
+    
+    print(f"[DEBUG] Relatório salvo com ID: {report.id}")
+    print(f"[DEBUG] code_content salvo: {report.code_content is not None}")
 
     return report
 
@@ -88,6 +98,8 @@ async def get_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Retorna detalhes de um relatório específico."""
+    print(f"[DEBUG] Buscando relatório: {report_id}")
+    
     result = await db.execute(
         select(AnalysisReport)
         .where(AnalysisReport.id == report_id)
@@ -101,6 +113,8 @@ async def get_report(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Relatório não encontrado",
         )
+    
+    print(f"[DEBUG] Relatório encontrado. code_content existe: {report.code_content is not None}")
     
     # Extrair issues do full_report
     issues = []
@@ -124,6 +138,8 @@ async def fix_code(
     db: AsyncSession = Depends(get_db),
 ):
     """Gera código corrigido usando IA."""
+    print(f"[DEBUG] Tentando corrigir relatório: {report_id}")
+    
     # Buscar relatório
     result = await db.execute(
         select(AnalysisReport).where(AnalysisReport.id == report_id)
@@ -131,15 +147,21 @@ async def fix_code(
     report = result.scalar_one_or_none()
     
     if not report:
+        print(f"[DEBUG] Relatório não encontrado: {report_id}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Relatório não encontrado",
         )
     
-    if not report.code_content:
+    print(f"[DEBUG] Conteúdo do código encontrado: {report.code_content is not None}")
+    print(f"[DEBUG] Tamanho do code_content: {len(report.code_content) if report.code_content else 0}")
+    
+    # Validação robusta do código
+    if not report.code_content or len(report.code_content.strip()) == 0:
+        print(f"[DEBUG] ERRO: Código original não encontrado ou vazio")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Código original não disponível",
+            detail="Código original não encontrado para esta análise. Tente analisar o código novamente.",
         )
     
     # Extrair issues
@@ -147,11 +169,14 @@ async def fix_code(
     if report.full_report and isinstance(report.full_report, dict):
         issues = report.full_report.get("issues", [])
     
+    print(f"[DEBUG] Issues encontradas: {len(issues)}")
+    
     issues_text = "\n".join(f"- {issue}" for issue in issues) if issues else "Nenhum problema específico listado."
     
     # Gerar correção com IA
     try:
-        model = genai.GenerativeModel("gemini-pro")
+        print(f"[DEBUG] Iniciando chamada ao Gemini...")
+        model = genai.GenerativeModel("gemini-2.5-flash-lite")
         
         prompt = f"""Atue como um Engenheiro de Software Sênior. Você receberá um código com problemas e uma lista de falhas. Sua tarefa é reescrever o código corrigindo todos os problemas citados. Retorne APENAS o código corrigido, sem markdown (```), sem explicações extras.
 
@@ -164,17 +189,24 @@ Problemas:
         response = model.generate_content(prompt)
         fixed_code = response.text.strip()
         
+        print(f"[DEBUG] Resposta do Gemini recebida: {len(fixed_code)} caracteres")
+        
         # Remover markdown se presente
         if fixed_code.startswith("```python"):
             fixed_code = fixed_code[9:]
-        if fixed_code.startswith("```"):
+        elif fixed_code.startswith("```"):
             fixed_code = fixed_code[3:]
         if fixed_code.endswith("```"):
             fixed_code = fixed_code[:-3]
         
-        return FixResponse(fixed_code=fixed_code.strip())
+        fixed_code = fixed_code.strip()
+        print(f"[DEBUG] Código corrigido gerado com sucesso")
+        
+        return FixResponse(fixed_code=fixed_code)
         
     except Exception as e:
+        print(f"[DEBUG] Erro Gemini: {e}")
+        print(f"[DEBUG] Tipo do erro: {type(e).__name__}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao gerar correção: {str(e)}",
