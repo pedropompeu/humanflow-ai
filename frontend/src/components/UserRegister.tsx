@@ -17,10 +17,24 @@ export default function UserRegister() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validação de confirmação de senha no cadastro
+    if (!isLogin && password !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+
+    // Validação de senha mínima
+    if (!isLogin && password.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -72,6 +86,7 @@ export default function UserRegister() {
     setFullName("");
     setEmail("");
     setPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -171,14 +186,38 @@ export default function UserRegister() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={isLogin ? undefined : 6}
             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-[#1F4ED8] focus:ring-2 focus:ring-[#1F4ED8]/20 transition-all outline-none"
             placeholder="••••••••"
           />
         </div>
 
+        {!isLogin && (
+          <div>
+            <label className="block text-sm font-medium text-[#0B1F3B] mb-2">
+              Confirmar Senha
+            </label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required={!isLogin}
+              className={`w-full px-4 py-3 bg-gray-50 border rounded-xl focus:ring-2 transition-all outline-none ${
+                confirmPassword && password !== confirmPassword
+                  ? "border-red-400 focus:border-red-500 focus:ring-red-500/20"
+                  : "border-gray-200 focus:border-[#1F4ED8] focus:ring-[#1F4ED8]/20"
+              }`}
+              placeholder="••••••••"
+            />
+            {confirmPassword && password !== confirmPassword && (
+              <p className="text-red-500 text-xs mt-1">As senhas não coincidem</p>
+            )}
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || (!isLogin && password !== confirmPassword)}
           className="w-full bg-gradient-to-r from-[#0B1F3B] to-[#1F4ED8] text-white py-3.5 px-4 rounded-xl font-semibold hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg shadow-[#1F4ED8]/25"
         >
           {loading ? (

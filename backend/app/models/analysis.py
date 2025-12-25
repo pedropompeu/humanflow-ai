@@ -23,6 +23,7 @@ class AnalysisReport(Base):
     )
     debt_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    code_content: Mapped[str | None] = mapped_column(Text, nullable=True)
     full_report: Mapped[dict | list | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow
