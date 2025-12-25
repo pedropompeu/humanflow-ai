@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { X, TriangleAlert, CheckCircle, FileText } from "lucide-react";
+import { X, TriangleAlert, CheckCircle, FileText, Wand2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface ReportData {
   id: string;
@@ -59,6 +60,10 @@ export default function ReportModal({ isOpen, onClose, report }: ReportModalProp
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleAutoFix = () => {
+    toast.info("Funcionalidade Auto-Fix em breve! 🚀");
   };
 
   const scoreColors = getScoreColor(report.score);
@@ -186,12 +191,21 @@ export default function ReportModal({ isOpen, onClose, report }: ReportModalProp
 
         {/* Footer */}
         <div className="border-t border-gray-100 p-4 bg-gray-50">
-          <button
-            onClick={onClose}
-            className="w-full bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white py-3 px-4 rounded-xl font-medium transition-colors"
-          >
-            Fechar Relatório
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleAutoFix}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-200 hover:shadow-lg hover:shadow-purple-500/30 active:scale-[0.98] flex items-center justify-center gap-2"
+            >
+              <Wand2 className="w-5 h-5" />
+              Gerar Correção com IA
+            </button>
+            <button
+              onClick={onClose}
+              className="px-6 bg-[#0B1F3B] hover:bg-[#0B1F3B]/90 text-white py-3 rounded-xl font-medium transition-colors"
+            >
+              Fechar
+            </button>
+          </div>
         </div>
       </div>
     </div>

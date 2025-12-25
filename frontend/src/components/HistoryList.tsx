@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { api } from "../services/api";
 import ReportModal from "./ReportModal";
 
@@ -62,9 +63,8 @@ export default function HistoryList() {
       const response = await api.get(`/analysis/report/${id}`);
       setSelectedReport(response.data);
       setIsModalOpen(true);
-    } catch (error) {
-      console.error("Erro ao buscar detalhes:", error);
-      alert("Erro ao carregar detalhes do relatório");
+    } catch {
+      toast.error("Não foi possível carregar o relatório.");
     }
   };
 
@@ -80,8 +80,8 @@ export default function HistoryList() {
       try {
         const response = await api.get(`/analysis/history/${userId}`);
         setHistory(response.data);
-      } catch (error) {
-        console.error("Erro ao buscar histórico:", error);
+      } catch {
+        toast.error("Erro ao carregar histórico.");
       } finally {
         setLoading(false);
       }

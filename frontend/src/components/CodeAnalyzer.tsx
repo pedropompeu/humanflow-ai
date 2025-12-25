@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { api } from "../services/api";
 
 interface AnalysisResult {
@@ -13,6 +14,7 @@ export default function CodeAnalyzer() {
   const [sourceCode, setSourceCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const getScoreColor = (score: number) => {
     if (score > 70) return "bg-[#2E7D32]";
@@ -26,16 +28,42 @@ export default function CodeAnalyzer() {
     return "Crítico";
   };
 
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validação de tamanho (1MB)
+    if (file.size > 1024 * 1024) {
+      toast.error("Arquivo muito grande. Limite de 1MB.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = reader.result as string;
+      setSourceCode(content);
+      toast.success(`Arquivo "${file.name}" carregado com sucesso!`);
+    };
+    reader.onerror = () => {
+      toast.error("Erro ao ler o arquivo.");
+    };
+    reader.readAsText(file);
+
+    // Limpar input para permitir recarregar o mesmo arquivo
+    e.target.value = "";
+  };
+
   const handleAnalyze = async () => {
     const userId = localStorage.getItem("humanflow_user_id");
 
     if (!userId) {
-      alert("Por favor, cadastre-se primeiro para analisar código.");
+      toast.warning("Cadastre-se primeiro para analisar código.");
       return;
     }
 
     if (!sourceCode.trim()) {
-      alert("Cole algum código para analisar");
+      toast.warning("Cole algum código para analisar.");
       return;
     }
 
@@ -60,13 +88,9 @@ export default function CodeAnalyzer() {
       });
 
       setResult(analysisResponse.data.full_report || analysisResponse.data);
-    } catch (error: unknown) {
-      if (error && typeof error === "object" && "response" in error) {
-        const axiosError = error as { response?: { data?: { detail?: string } } };
-        alert(axiosError.response?.data?.detail || "Erro na análise");
-      } else {
-        alert("Erro na análise");
-      }
+      toast.success("Análise concluída com sucesso!");
+    } catch {
+      toast.error("Falha ao conectar com a IA. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -84,7 +108,7 @@ export default function CodeAnalyzer() {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">Análise de Inteligência Artificial</h2>
-            <p className="text-gray-400 text-sm">Cole seu código e receba feedback instantâneo</p>
+            <p className="text-gray-400 text-sm">Cole seu código ou faça upload de um arquivo</p>
           </div>
         </div>
       </div>
@@ -125,28 +149,50 @@ export default function CodeAnalyzer() {
           />
         </div>
 
-        <button
-          onClick={handleAnalyze}
-          disabled={loading}
-          className="w-full bg-[#1F4ED8] text-white py-4 px-6 rounded-xl font-semibold hover:bg-[#1F4ED8]/90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg shadow-[#1F4ED8]/25"
-        >
-          {loading ? (
-            <>
-              <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Analisando com IA...
-            </>
-          ) : (
-            <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              Analisar Código
-            </>
-          )}
-        </button>
+        {/* Action Buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-gray-700 text-white rounded-xl font-semibold hover:bg-gray-600 active:scale-[0.98] transition-all duration-200 border border-gray-600"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload
+          </button>
+
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="flex-1 bg-[#1F4ED8] text-white py-4 px-6 rounded-xl font-semibold hover:bg-[#1F4ED8]/90 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-lg shadow-[#1F4ED8]/25"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Analisando com IA...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Analisar Código
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Hidden File Input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".py,.js,.ts,.tsx,.jsx,.txt,.md,.json,.html,.css"
+          onChange={handleFileUpload}
+        />
       </div>
 
       {/* Results */}
