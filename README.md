@@ -17,7 +17,7 @@
 
 ---
 
-## *#* Sobre o Projeto
+## *#* O que é o Projeto
 
 **HumanFlow AI** é um SaaS Full Stack que utiliza o modelo **Google Gemini 2.5 Flash** para analisar código em tempo real. A ferramenta detecta vulnerabilidades de segurança (OWASP), bugs de performance e code smells, fornecendo feedback instantâneo e detalhado num dashboard moderno.
 
